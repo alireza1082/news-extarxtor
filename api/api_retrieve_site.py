@@ -7,7 +7,6 @@ from bs4 import BeautifulSoup
 from persiantools import digits
 
 
-
 def get_tgju_price():
     server_name = "tgju"
     url = "https://www.tgju.org/profile/geram18"
@@ -157,7 +156,8 @@ def get_tgju_news():
 
 def fetch_eghtesadonline_section(sec_id=266):
     base_url = "https://www.eghtesadonline.com"
-    url = f"{base_url}/fa/archive/section?sec_id={sec_id}"
+    # url = f"{base_url}/fa/archive/section?sec_id={sec_id}"
+    url = f"{base_url}/fa/services/13"
 
     headers = {
         "User-Agent": (
@@ -171,35 +171,31 @@ def fetch_eghtesadonline_section(sec_id=266):
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    print(soup)
-
     news_items = []
-    for block in soup.select("div.archive-item, div.item, div.news-list-item"):
+    for article in soup.select("section.ListNewsSection article.newsList"):
+        title_tag = article.select_one("h3.title a")
+        title = title_tag.get_text(strip=True) if title_tag else None
+        link = urljoin(base_url, title_tag["href"]) if title_tag and title_tag.get("href") else None
 
-        a = block.select_one("a[href]")
-        title = a.get_text(strip=True) if a else None
-        link = urljoin(base_url, a["href"]) if a else None
+        summary_tag = article.select_one("p.summery")
+        summary = summary_tag.get_text(strip=True) if summary_tag else None
 
-        cat_tag = block.select_one("div.cat, span.cat, .category")
-        category = cat_tag.get_text(strip=True) if cat_tag else None
+        img_tag = article.select_one("a.picLink img")
+        image = urljoin(base_url, img_tag["src"]) if img_tag and img_tag.get("src") else None
 
-        desc_tag = block.select_one(".summary, .lead, p")
-        summary = desc_tag.get_text(strip=True) if desc_tag else None
-
-        time_tag = block.select_one("time")
-        publish_datetime = time_tag.get("datetime") if time_tag and time_tag.has_attr("datetime") else None
-        publish_text = time_tag.get_text(strip=True) if time_tag else None
+        date_tag = article.select_one("span.date")
+        date = date_tag.get_text(strip=True) if date_tag else None
+        # must use requests_html instead requests
 
         news_items.append({
             "title": title,
             "link": link,
-            "category": category,
             "summary": summary,
-            "publish_datetime": publish_datetime,
-            "publish_text": publish_text
+            "image": image
         })
 
     return news_items
+
 
 def get_tala_price():
     url = "https://www.tala.ir/price/18k"
