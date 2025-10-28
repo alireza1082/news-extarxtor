@@ -10,7 +10,7 @@ def get_gold_price():
 
     if dB.is_update_required(redis):
         print("DB update required!")
-        price = get_gold_price_from_api()
+        price = api.get_gold_brs()
         if price is not None:
             print("returned price: " + str(price))
             dB.update_last_price(redis, price)
