@@ -1,7 +1,6 @@
 # coding= utf-8
 from urllib.parse import urljoin
 
-import cloudscraper
 import requests
 from bs4 import BeautifulSoup
 from persiantools import digits
@@ -35,8 +34,7 @@ def get_tgju_price():
 
 
 def get_ice_news():
-    server_name = "ice"
-    url = "https://ice.ir/news/"
+    limit = 20
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -44,46 +42,28 @@ def get_ice_news():
             "Chrome/128.0.0.0 Safari/537.36"
         )
     }
-    try:
-        # resp = requests.get(url.rstrip(), headers=headers)
-        scraper = cloudscraper.create_scraper(browser={
-            'browser': 'chrome',
-            'platform': 'windows',
-            'mobile': False
+
+    url = "https://ice.ir/news"
+    requests.get(url, headers=headers, timeout=10)
+
+    url = f"https://api.ice.ir/api/v1/news/?limit={limit}&offset=0&lang=fa"
+    response = requests.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+
+    data = response.json()
+    news_items = data.get("results", [])
+    news = []
+    for a in news_items:
+        news.append({
+            "id": a.get("pk"),
+            "title": a.get("title"),
+            "summary": a.get("summary"),
+            "published_at": a.get("published_at"),
+            "image": a.get("image"),
+            "categories": ", ".join([c["name"] for c in a.get("categories", [])])
         })
-
-        resp = scraper.get(url, verify=False)
-        resp.raise_for_status()
-        # arrange file by html tags
-        if resp.status_code == 404:
-            print(f"server {server_name} not responding")
-            return "0"
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        if soup is None:
-            print(f"page of {server_name} not downloaded beautiful")
-            return "0"
-        news = soup.text
-
-        if news is not None:
-            news_items = []
-            print(f"news on {server_name} site is: ", news)
-            for a in soup.select("div.news-list a"):  # این انتخابگر ممکنه تغییر کنه
-                title = a.get_text(strip=True)
-                href = a.get("href")
-                if not href:
-                    continue
-                full_link = urljoin("base_url", href)
-                news_items.append({
-                    "title": title,
-                    "link": full_link
-                })
-            return news_items
-        else:
-            return None
-    except Exception as ex:
-        print("an error occurred in checking " + server_name)
-        print(ex)
-        return None
+        print("------------------------------------------------")
+    return news
 
 
 def get_tgju_news():
