@@ -3,6 +3,8 @@ import api.api_price as api_price
 
 def test_ice():
     print(retrieve_site.get_tgju_news())
+def test_isna():
+    print(retrieve_site.get_isna_news())
 
 def test_egh():
     print(retrieve_site.fetch_eghtesadonline_section())
@@ -12,4 +14,4 @@ def test_gold_price():
 
 
 if __name__ == "__main__":
-    test_egh()
+    test_isna()

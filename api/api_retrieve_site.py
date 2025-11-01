@@ -1,9 +1,39 @@
 # coding= utf-8
 from urllib.parse import urljoin
 
+import jdatetime
 import requests
 from bs4 import BeautifulSoup
 from persiantools import digits
+
+
+def fa_to_en(num_str):
+    fa = "۰۱۲۳۴۵۶۷۸۹"
+    en = "0123456789"
+    table = str.maketrans(fa, en)
+    return num_str.translate(table)
+
+
+persian_months = {
+    "فروردین": 1, "اردیبهشت": 2, "خرداد": 3, "تیر": 4, "مرداد": 5, "شهریور": 6,
+    "مهر": 7, "آبان": 8, "آذر": 9, "دی": 10, "بهمن": 11, "اسفند": 12
+}
+
+
+def convert_persian_date(date_str):
+    try:
+        parts = date_str.split()
+        day = int(fa_to_en(parts[0]))
+        month = persian_months[parts[1]]
+        year = int(fa_to_en(parts[2]))
+
+        persian_date = jdatetime.date(year, month, day)
+        gregorian_date = persian_date.togregorian()
+
+        return gregorian_date.strftime("%Y-%m-%d")
+    except Exception as e:
+        print("Error parsing date:", date_str, e)
+        return date_str
 
 
 def get_tgju_price():
@@ -174,6 +204,49 @@ def fetch_eghtesadonline_section(sec_id=266):
             "image": image
         })
 
+    return news_items
+
+
+def get_isna_news():
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/128.0.0.0 Safari/537.36"
+        )
+    }
+
+    url = "https://www.isna.ir/archive?tp=34"
+    response = requests.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    news_items = []
+    cards = soup.select("div.items li")
+    for card in cards:
+        title_el = card.select_one("h3 a")
+        img = card.select_one("img")
+
+        date_el = card.select_one("time a")
+        date_raw = date_el.get_text(strip=True).split("-")[0].strip() if date_el else None
+
+        date = convert_persian_date(date_raw) if date_raw else None
+
+        summary_el = card.select_one("p")
+        summary = summary_el.get_text(strip=True) if summary_el else None
+
+        title = title_el.get_text(strip=True) if title_el else None
+        link = urljoin("https://www.isna.ir/", title_el["href"]) if title_el else None
+        image = img["src"] if img else None
+
+        if title and link:
+            news_items.append({
+                "title": title,
+                "link": link,
+                "date": date,
+                "summery": summary,
+                "image": image
+            })
     return news_items
 
 
